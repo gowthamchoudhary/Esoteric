@@ -2,20 +2,22 @@ import asyncio
 import websockets
 
 
-async def main():
 
+async def send_message(websocket):
+    while True:
+        message = await asyncio.to_thread(input,"you")
+        await websocket.send(message)
+async def recieve_message(websocket):
+    while True:
+        message = await websocket.recv()
+        print(f"\nother:{message}")
+async def main():
     async with websockets.connect(
         "ws://127.0.0.1:5000/communicate"
     ) as websocket:
-        text = input("enter you message")
+            await asyncio.gather(
+                 send_message(websocket),
+                 recieve_message(websocket)
 
-        print("Connected to server")
-
-        await websocket.send(f"Hello FastAPI {text}")
-
-        response = await websocket.recv()
-
-        print("Server:", response)
-
-
+            )
 asyncio.run(main())
