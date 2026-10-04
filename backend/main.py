@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-
+clients = []
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -33,16 +33,13 @@ async def home():
 @app.websocket("/communicate")
 async def connect(websocket: WebSocket):
     await manager.connect(websocket)
+    clients.append(websocket)
     try:
         while True:
             data = await websocket.receive_text()
-            if data.strip().lower() == "fuck you":
-                print("SPECIAL RESPONSE")
-                await manager.send_personal_message("fuck you too", websocket)
-            else:
-                await manager.send_personal_message(
-                    f"Received: {data}",
-                    websocket
-                )
+            for client in clients:
+                if client != websocket:
+                    await client.send_text(f"recieved{data}")
+
     except WebSocketDisconnect:
         manager.disconnect_websocket(websocket)
