@@ -42,3 +42,5 @@ async def connect(websocket: WebSocket,client_id:str,recv_id:str):
 
     except WebSocketDisconnect:
         manager.disconnect_websocket(websocket)
+        del clients[client_id]
+        return 
