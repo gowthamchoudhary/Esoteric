@@ -5,13 +5,21 @@ import websockets
 async def send_message(websocket):
     while True:
         message = await asyncio.to_thread(input, "You: ")
+        if message == "/exist":
+            return await websocket.close(1000,"user stopped communication ")
         await websocket.send(message)
+        
+
 
 
 async def receive_message(websocket):
     while True:
-        message = await websocket.recv()
-        print(f"\nOther: {message}")
+        try:
+            message = await websocket.recv()
+            print(f"\nOther: {message}")
+        except websockets.ConnectionClosed:
+            print("client disconnected")
+            return 
 
 
 async def main():
