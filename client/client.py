@@ -22,7 +22,7 @@ async def receive_message(websocket):
             return 
 
 
-async def main():
+async def main():   
 
     client_id = input("Enter your ID: ")
     recv_id = input("Enter the receiver ID: ")
