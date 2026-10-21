@@ -8,20 +8,29 @@ app = FastAPI()
 clients = {}
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[WebSocket] = {}
+        self.active_connections: dict[str,WebSocket] = {}
 
     async def connect(self,client_id, websocket: WebSocket):
         if client_id in self.active_connections.keys():
-            return "user already existing "
+            return False
+        
         await websocket.accept()
         self.active_connections[client_id]=websocket
 
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
+    async def send_personal_message(self, message: str,recv_id, websocket: WebSocket):
+        if recv_id not in self.active_connections.keys():
+            return "no user existing with reciever id entered"
+        
+        await self.active_connections[recv_id].send_text(message)
 
-    def disconnect_websocket(self,client_id, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
+    async def disconnect_websocket(self,client_id, websocket: WebSocket):
+        if client_id in self.active_connections.keys():
+            if self.active_connections[client_id] is websocket:
+                del self.active_connections[client_id]
+        await websocket.close()
+    async def send_msg(self,recv_id,msg):
+        if recv_id in manager.active_connections.keys():
+                await manager.active_connections[recv_id].send_text(f"recieved{msg}")
 
 
 manager = ConnectionManager()
@@ -34,17 +43,21 @@ async def home():
 
 @app.websocket("/communicate/{client_id}/{recv_id}")
 async def connect(websocket: WebSocket,client_id:str,recv_id:str):
-    await manager.connect(client_id,websocket)
+    connected = await manager.connect(client_id,websocket)
+    if not connected:
+        await websocket.close(code=1008)
+        return 
     manager.active_connections[client_id] = websocket
 
     # clients[client_id] = websocket
     try:
         while True:
             data = await websocket.receive_text()
-            if recv_id in manager.active_connections.keys():
-                await manager.active_connections[recv_id].send_text(f"recieved{data}")
+            await manager.send_msg(recv_id,data)
 
     except WebSocketDisconnect:
-        manager.disconnect_websocket(websocket)
-        del manager.active_connections[client_id]
+        manager.disconnect_websocket(client_id,websocket)
+        # del manager.active_connections[client_id]
         return 
+    finally:
+        manager.disconnect_websocket(client_id,websocket)
