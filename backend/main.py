@@ -16,6 +16,7 @@ class ConnectionManager:
         
         await websocket.accept()
         self.active_connections[client_id]=websocket
+        return True
 
     async def send_personal_message(self, message: str,recv_id, websocket: WebSocket):
         if recv_id not in self.active_connections.keys():
@@ -29,8 +30,8 @@ class ConnectionManager:
                 del self.active_connections[client_id]
         await websocket.close()
     async def send_msg(self,recv_id,msg):
-        if recv_id in manager.active_connections.keys():
-                await manager.active_connections[recv_id].send_text(f"recieved{msg}")
+        if recv_id in self.active_connections.keys():
+                await self.ctive_connections[recv_id].send_text(f"recieved{msg}")
 
 
 manager = ConnectionManager()
@@ -47,7 +48,6 @@ async def connect(websocket: WebSocket,client_id:str,recv_id:str):
     if not connected:
         await websocket.close(code=1008)
         return 
-    manager.active_connections[client_id] = websocket
 
     # clients[client_id] = websocket
     try:
@@ -56,8 +56,7 @@ async def connect(websocket: WebSocket,client_id:str,recv_id:str):
             await manager.send_msg(recv_id,data)
 
     except WebSocketDisconnect:
-        manager.disconnect_websocket(client_id,websocket)
-        # del manager.active_connections[client_id]
-        return 
+        print(f"{client_id} disconnected")        # del manager.active_connections[client_id]
+         
     finally:
-        manager.disconnect_websocket(client_id,websocket)
+        await manager.disconnect_websocket(client_id,websocket)
